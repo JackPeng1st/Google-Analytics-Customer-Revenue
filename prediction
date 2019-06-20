@@ -8,6 +8,7 @@ library(rpart)
 library(ranger)
 library(adabag)
 library(xgboost)
+library(catboost)
 
 train_all=data.frame()
 
@@ -55,11 +56,13 @@ train_all=cbind(fullVisitorId,chr,int)
 train_data=subset(train_all,select=-fullVisitorId)
 
 model.rf <- randomForest(transactionRevenue~.,data=train_data,ntree=500,proximity=TRUE)
+model.tree=rpart(transactionRevenue~.,data=train_data,method="anova" )
 model.survival.rf=ranger(transactionRevenue~.,data=train_data)
 model.AdaBoost=boosting(transactionRevenue~.,data=train_data, mfinal = 100)
 #xgboost
 target <- train_data$transactionRevenue
 train_Matrix <- xgb.DMatrix(data=as.matrix(train_data),label=target, missing=NA)
+
 
 #Test data
 test_all=data.frame()
@@ -109,5 +112,6 @@ test_data=subset(test_all,select=-fullVisitorId)
 test=select(test_data,-transactionRevenue)
 
 prediction_rf=predict(model.rf ,test)
+prediction_rf=predict(model.tree ,test)
 prediction_survival_rf=predict(model.survival.rf,test)
 prediction_survival_rf$predictions
