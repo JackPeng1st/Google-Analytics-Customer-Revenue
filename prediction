@@ -15,7 +15,7 @@ train_all=data.frame()
 train=read.csv("train_v2.csv",sep=",",na.strings = "",nrows = 1)
 col_name=colnames(train)
 
-for (i in 0:20){
+for (i in 0:50){
 
   train=read.csv("train_v2.csv",sep=",",na.strings = "",nrows = 1000,skip=(1000*i),col.names = col_name)
 
@@ -70,7 +70,7 @@ test_all=data.frame()
 test=read.csv("train_v2.csv",sep=",",na.strings = "",nrows = 1)
 col_name=colnames(test)
 
-for (i in 0:1){
+for (i in 0:5){
 
   test=read.csv("train_v2.csv",sep=",",na.strings = "",nrows = 1000,skip=(1000*i),col.names = col_name)
 
@@ -112,6 +112,9 @@ test_data=subset(test_all,select=-fullVisitorId)
 test=select(test_data,-transactionRevenue)
 
 prediction_rf=predict(model.rf ,test)
-prediction_rf=predict(model.tree ,test)
+prediction_tree=predict(model.tree ,test)
 prediction_survival_rf=predict(model.survival.rf,test)
 prediction_survival_rf$predictions
+
+RMSE(prediction_tree, test_data$transactionRevenue)
+RMSE(prediction_survival_rf$predictions, test_data$transactionRevenue)
