@@ -4,7 +4,7 @@ library(gtools)
 library(DMwR)
 library(randomForest)
 library(rpart)
-#library(e1071)
+library(e1071)
 library(ranger)
 library(adabag)
 library(xgboost)
@@ -15,7 +15,7 @@ train_all=data.frame()
 train=read.csv("train_v2.csv",sep=",",na.strings = "",nrows = 1)
 col_name=colnames(train)
 
-for (i in 0:50){
+for (i in 0:20){
 
   train=read.csv("train_v2.csv",sep=",",na.strings = "",nrows = 1000,skip=(1000*i),col.names = col_name)
 
@@ -62,7 +62,7 @@ model.AdaBoost=boosting(transactionRevenue~.,data=train_data, mfinal = 100)
 #xgboost
 target <- train_data$transactionRevenue
 train_Matrix <- xgb.DMatrix(data=as.matrix(train_data),label=target, missing=NA)
-
+svm_model<-svm(transactionRevenue~., data=train_data, cost = 3)
 
 #Test data
 test_all=data.frame()
@@ -115,6 +115,7 @@ prediction_rf=predict(model.rf ,test)
 prediction_tree=predict(model.tree ,test)
 prediction_survival_rf=predict(model.survival.rf,test)
 prediction_survival_rf$predictions
+svm_pred <- predict(svm_model,test)
 
 RMSE(prediction_tree, test_data$transactionRevenue)
 RMSE(prediction_survival_rf$predictions, test_data$transactionRevenue)
