@@ -1,0 +1,102 @@
+library(tidyverse)
+library(jsonlite)
+library(gtools)
+library(DMwR)
+library(randomForest)
+library(rpart)
+library(e1071)
+train_all=data.frame()
+
+train=read.csv("train_v2.csv",sep=",",na.strings = "",nrows = 1)
+col_name=colnames(train)
+
+for (i in 0:2){
+
+  train=read.csv("train_v2.csv",sep=",",na.strings = "",nrows = 1000,skip=(1000*i),col.names = col_name)
+
+  tr_device <-   fromJSON(paste("[", paste(train$device, collapse = ","), "]"),flatten = T)
+  tr_geoNetwork <- fromJSON(paste("[", paste(train$geoNetwork, collapse = ","), "]") ,flatten = T)
+  tr_totals <-  fromJSON(paste("[", paste(train$totals, collapse = ","), "]"),flatten = T)
+  tr_trafficSource <-fromJSON( paste("[", paste(train$trafficSource, collapse = ","), "]"),flatten = T)
+  col=cbind(tr_device, tr_geoNetwork, tr_totals, tr_trafficSource)
+  train=select(train,-device, -geoNetwork, -totals, -trafficSource,-hits,-customDimensions)
+  train=cbind(train,col)
+  train_all=smartbind(train_all,train)#gtools
+  train_all=subset(train_all,is.na(transactionRevenue)==F&is.na(totalTransactionRevenue)==F)
+
+}
+
+train_all=select(train_all,fullVisitorId,browser,operatingSystem,deviceCategory,subContinent,country,region,city,
+                 hits,pageviews,sessionQualityDim,transactionRevenue,totalTransactionRevenue)
+train_all=centralImputation(train_all)
+
+#把歸類錯誤的變數改正確
+train_all$hits=as.integer(train_all$hits)
+train_all$pageviews=as.integer(train_all$pageviews)
+train_all$sessionQualityDim=as.integer(train_all$sessionQualityDim)
+train_all$transactionRevenue=as.integer(train_all$transactionRevenue)
+train_all$totalTransactionRevenue=as.integer(train_all$totalTransactionRevenue)
+train_all$fullVisitorId=as.character(train_all$fullVisitorId)
+
+chr <- train_all[,sapply(train_all,is.character)]
+chr=subset(chr,select=-fullVisitorId)
+int <- train_all[,sapply(train_all,is.integer)]
+#fac <- train_all[,sapply(train_all,is.factor)]
+#col=c(colnames(chr),colnames(int),colnames(fac))
+#col_all=colnames(train_all)
+#no_type<- subset(train_all,select=col_all[!col_all %in% c(col)])
+chr=chr %>% lapply(as.factor) %>% as.data.frame()
+fullVisitorId=train_all$fullVisitorId
+train_all=cbind(fullVisitorId,chr,int)
+train_data=subset(train_all,select=-fullVisitorId)
+
+model.rf <- randomForest(transactionRevenue~.,data=train_data,ntree=500,proximity=TRUE)
+
+#Test data
+test_all=data.frame()
+
+test=read.csv("train_v2.csv",sep=",",na.strings = "",nrows = 1)
+col_name=colnames(test)
+
+for (i in 0:2){
+
+  test=read.csv("train_v2.csv",sep=",",na.strings = "",nrows = 1000,skip=(1000*i),col.names = col_name)
+
+  tr_device <-   fromJSON(paste("[", paste(test$device, collapse = ","), "]"),flatten = T)
+  tr_geoNetwork <- fromJSON(paste("[", paste(test$geoNetwork, collapse = ","), "]") ,flatten = T)
+  tr_totals <-  fromJSON(paste("[", paste(test$totals, collapse = ","), "]"),flatten = T)
+  tr_trafficSource <-fromJSON( paste("[", paste(test$trafficSource, collapse = ","), "]"),flatten = T)
+  col=cbind(tr_device, tr_geoNetwork, tr_totals, tr_trafficSource)
+  test=select(test,-device, -geoNetwork, -totals, -trafficSource,-hits,-customDimensions)
+  test=cbind(test,col)
+  test_all=smartbind(test_all,test)#gtools
+  test_all=subset(test_all,is.na(transactionRevenue)==F&is.na(totalTransactionRevenue)==F)
+
+}
+
+test_all=select(test_all,fullVisitorId,browser,operatingSystem,deviceCategory,subContinent,country,region,city,
+                hits,pageviews,sessionQualityDim,transactionRevenue,totalTransactionRevenue)
+test_all=centralImputation(test_all)
+
+#把歸類錯誤的變數改正確
+test_all$hits=as.integer(test_all$hits)
+test_all$pageviews=as.integer(test_all$pageviews)
+test_all$sessionQualityDim=as.integer(test_all$sessionQualityDim)
+test_all$transactionRevenue=as.integer(test_all$transactionRevenue)
+test_all$totalTransactionRevenue=as.integer(test_all$totalTransactionRevenue)
+test_all$fullVisitorId=as.character(test_all$fullVisitorId)
+
+chr <- test_all[,sapply(test_all,is.character)]
+chr=subset(chr,select=-fullVisitorId)
+int <- test_all[,sapply(test_all,is.integer)]
+#fac <- train_all[,sapply(train_all,is.factor)]
+#col=c(colnames(chr),colnames(int),colnames(fac))
+#col_all=colnames(train_all)
+#no_type<- subset(train_all,select=col_all[!col_all %in% c(col)])
+chr=chr %>% lapply(as.factor) %>% as.data.frame()
+fullVisitorId=test_all$fullVisitorId
+test_all=cbind(fullVisitorId,chr,int)
+test_data=subset(test_all,select=-fullVisitorId)
+test=select(test_data,-transactionRevenue)
+
+prediction_rf=predict(model.rf ,test)
