@@ -4,13 +4,16 @@ library(gtools)
 library(DMwR)
 library(randomForest)
 library(rpart)
-library(e1071)
+#library(e1071)
+library(ranger)
+library(adabag)
+library(xgboost)
 train_all=data.frame()
 
 train=read.csv("train_v2.csv",sep=",",na.strings = "",nrows = 1)
 col_name=colnames(train)
 
-for (i in 0:2){
+for (i in 0:20){
 
   train=read.csv("train_v2.csv",sep=",",na.strings = "",nrows = 1000,skip=(1000*i),col.names = col_name)
 
@@ -51,6 +54,8 @@ train_all=cbind(fullVisitorId,chr,int)
 train_data=subset(train_all,select=-fullVisitorId)
 
 model.rf <- randomForest(transactionRevenue~.,data=train_data,ntree=500,proximity=TRUE)
+model.survival.rf=ranger(transactionRevenue~.,data=train_data)
+model.AdaBoost=boosting(transactionRevenue~.,data=train_data, mfinal = 100)
 
 #Test data
 test_all=data.frame()
@@ -58,7 +63,7 @@ test_all=data.frame()
 test=read.csv("train_v2.csv",sep=",",na.strings = "",nrows = 1)
 col_name=colnames(test)
 
-for (i in 0:2){
+for (i in 0:1){
 
   test=read.csv("train_v2.csv",sep=",",na.strings = "",nrows = 1000,skip=(1000*i),col.names = col_name)
 
@@ -100,3 +105,6 @@ test_data=subset(test_all,select=-fullVisitorId)
 test=select(test_data,-transactionRevenue)
 
 prediction_rf=predict(model.rf ,test)
+prediction_survival_rf=predict(model.survival.rf,test)
+prediction_survival_rf$predictions
+
