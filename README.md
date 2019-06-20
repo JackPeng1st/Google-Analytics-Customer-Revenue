@@ -1,5 +1,3 @@
-# Google-Analytics-Customer-Revenue
-
 #train=read.csv("train_v2.csv",sep=",",na.strings = "",nrows = 6)
 #train=read.csv("train_v2.csv",sep=",",na.strings = "",nrows = 1000)[,-c(2,4,6,7,9,10)]
 
@@ -102,6 +100,16 @@ test_all=select(test_all,-bounces,-newVisits,-timeOnSite,-adContent ,-referralPa
                  - adwordsClickInfo.adNetworkType,-adwordsClickInfo.isVideoAd )
 test_all=centralImputation(test_all)
 
+test_all$visits=as.integer(test_all$visits)
+test_all$hits=as.integer(test_all$hits)
+test_all$pageviews=as.integer(test_all$pageviews)
+test_all$transactions=as.integer(test_all$transactions)
+test_all$sessionQualityDim=as.integer(test_all$sessionQualityDim)
+test_all$transactions=as.integer(test_all$transactions)
+test_all$transactionRevenue=as.integer(test_all$transactionRevenue)
+test_all$totalTransactionRevenue=as.integer(test_all$totalTransactionRevenue)
+
+
 chr <- test_all[,sapply(test_all,is.character)]
 int <- test_all[,sapply(test_all,is.integer)]
 fac <- test_all[,sapply(test_all,is.factor)]
@@ -114,13 +122,8 @@ isMobile=data.frame(as.factor(no_type$isMobile))
 colnames(isMobile)="isMobile"
 no_type=cbind(fullVisitorId,isMobile)
 chr=chr %>% lapply(as.factor) %>% as.data.frame()
-int=int %>% lapply(as.integer) %>% as.data.frame()
 test_all=cbind(chr,fac,int,no_type)
 test_data=subset(test_all,select=-fullVisitorId)
-test_data$transactionRevenue=as.numeric(test_data$transactionRevenue)
-test_data$hits=as.numeric(test_data$hits)
-test_data$pageviews=as.numeric(test_data$pageviews)
-test_data$totalTransactionRevenue=as.numeric(test_data$totalTransactionRevenue)
 
 test=select(test_data,-transactionRevenue)
 #prediction=predict(tree.model,test)
