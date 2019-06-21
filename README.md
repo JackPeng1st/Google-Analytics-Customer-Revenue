@@ -1,5 +1,7 @@
 https://www.kaggle.com/c/ga-customer-revenue-prediction/overview
 
+https://docs.google.com/presentation/d/1yRQrmj1-dbWA3ERlK4z4zhygvj0KbKXH0NYS6L6yPeA/edit#slide=id.g5c19a00621_0_119
+
 #train=read.csv("train_v2.csv",sep=",",na.strings = "",nrows = 6)
 #train=read.csv("train_v2.csv",sep=",",na.strings = "",nrows = 1000)[,-c(2,4,6,7,9,10)]
 
