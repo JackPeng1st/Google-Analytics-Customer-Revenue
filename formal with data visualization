@@ -90,7 +90,10 @@ for(i in 1:471){
     break
   }
 }
-
+level=data.frame(level=c("max","median","min"))
+revenue_data=cbind(level,rbind(max,median,min))
+ggplot(revenue_data,aes(x=level,y=transactionRevenue)) +geom_bar(stat='identity', fill='orange')
+ggplot(revenue_data,aes(x=level,y=operatingSystem)) +geom_point(stat='identity', fill='brown',size=10)
 
 model.rf <- randomForest(transactionRevenue~.,data=train_all,ntree=500,proximity=TRUE)
 model.tree=rpart(transactionRevenue~.,data=train_all,method="anova" )
