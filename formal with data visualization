@@ -62,7 +62,34 @@ train_all=cbind(chr,int)
 #train_data=subset(train_all,select=-fullVisitorId)
 
 #visualization
-ggplot(train_all,aes(x=transactionRevenue,fill=(region))) +geom_histogram(fill="red",bins = 30)
+ggplot(train_all,aes(x=transactionRevenue)) +geom_histogram(fill="red",bins = 30)
+ggplot(train_all,aes(x=operatingSystem, y=transactionRevenue)) +geom_bar(stat='identity', fill='blue')
+ggplot(train_all,aes(x=browser,y=transactionRevenue)) +geom_bar(stat='identity', fill='purple')
+ggplot(train_all,aes(x=operatingSystem, y=transactionRevenue)) +geom_boxplot()
+ggplot(train_all,aes(x=subContinent,y=transactionRevenue)) +geom_boxplot()
+#最有錢、最沒錢、中間
+for(i in 1:471){
+  if(train_all$transactionRevenue[i]==min(train_all$transactionRevenue)){
+    print(train_all[i,])
+    min=train_all[i,]
+    break
+  }
+  }
+for(i in 1:471){
+  if(train_all$transactionRevenue[i]==max(train_all$transactionRevenue)){
+    print(train_all[i,])
+    max=train_all[i,]
+    break
+  }
+}
+
+for(i in 1:471){
+  if(train_all$transactionRevenue[i]==median(train_all$transactionRevenue)){
+    print(train_all[i,])
+    median=train_all[i,]
+    break
+  }
+}
 
 
 model.rf <- randomForest(transactionRevenue~.,data=train_all,ntree=500,proximity=TRUE)
