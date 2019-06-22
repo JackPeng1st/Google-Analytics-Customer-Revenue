@@ -10,6 +10,8 @@ library(adabag)
 library(xgboost)
 library(catboost)
 library(ggplot2)
+library(SciViews)
+library(SciViews)
 
 train_all=data.frame()
 
@@ -74,7 +76,7 @@ for(i in 1:471){
     min=train_all[i,]
     break
   }
-  }
+}
 for(i in 1:471){
   if(train_all$transactionRevenue[i]==max(train_all$transactionRevenue)){
     print(train_all[i,])
@@ -164,5 +166,5 @@ prediction_survival_rf=predict(model.survival.rf,test_data)
 prediction_survival_rf$predictions
 svm_pred <- predict(svm_model,test_data)
 
-RMSE(prediction_tree, test_all$transactionRevenue)
-RMSE(prediction_survival_rf$predictions, test_all$transactionRevenue)
+RMSE(ln(prediction_tree),ln( test_all$transactionRevenue))
+RMSE(ln(prediction_survival_rf$predictions),ln( test_all$transactionRevenue))
