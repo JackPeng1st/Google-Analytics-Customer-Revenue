@@ -1,0 +1,173 @@
+library(tidyverse)
+library(jsonlite)
+library(gtools)
+library(DMwR)
+library(randomForest)
+library(rpart)
+library(e1071)
+library(ranger)
+library(adabag)
+library(xgboost)
+library(catboost)
+library(ggplot2)
+library(SciViews)
+library(SciViews)
+
+train_all=data.frame()
+
+train=read.csv("train_v2.csv",sep=",",na.strings = "",nrows = 1)
+col_name=colnames(train)
+
+for (i in 0:100){
+
+  train=read.csv("train_v2.csv",sep=",",na.strings = "",nrows = 1000,skip=(1000*i),col.names = col_name)
+
+  tr_device <-   fromJSON(paste("[", paste(train$device, collapse = ","), "]"),flatten = T)
+  tr_geoNetwork <- fromJSON(paste("[", paste(train$geoNetwork, collapse = ","), "]") ,flatten = T)
+  tr_totals <-  fromJSON(paste("[", paste(train$totals, collapse = ","), "]"),flatten = T)
+  tr_trafficSource <-fromJSON( paste("[", paste(train$trafficSource, collapse = ","), "]"),flatten = T)
+  col=cbind(tr_device, tr_geoNetwork, tr_totals, tr_trafficSource)
+  train=select(train,-device, -geoNetwork, -totals, -trafficSource,-hits,-customDimensions)
+  train=cbind(train,col)
+  train_all=smartbind(train_all,train)#gtools
+  train_all=subset(train_all,is.na(transactionRevenue)==F&is.na(totalTransactionRevenue)==F)
+
+}
+
+train_all=select(train_all,browser,operatingSystem,deviceCategory,subContinent,country,region,city,
+                 hits,pageviews,sessionQualityDim,transactionRevenue,totalTransactionRevenue)
+
+
+#把歸類錯誤的變數改正確
+train_all$hits=as.integer(train_all$hits)
+train_all$pageviews=as.integer(train_all$pageviews)
+train_all$sessionQualityDim=as.integer(train_all$sessionQualityDim)
+train_all$transactionRevenue=as.integer(train_all$transactionRevenue)
+train_all$totalTransactionRevenue=as.integer(train_all$totalTransactionRevenue)
+#train_all$fullVisitorId=as.character(train_all$fullVisitorId)
+train_all=centralImputation(train_all)
+train_all$transactionRevenue=as.integer(train_all$transactionRevenue)
+train_all$totalTransactionRevenue=as.integer(train_all$totalTransactionRevenue)
+train_all$sessionQualityDim=as.integer(train_all$sessionQualityDim)
+sapply(train_all,function(x) sum(is.na(x)))
+
+chr <- train_all[,sapply(train_all,is.character)]
+#chr=subset(chr,select=-fullVisitorId)
+int <- train_all[,sapply(train_all,is.integer)]
+fac <- train_all[,sapply(train_all,is.factor)]
+#col=c(colnames(chr),colnames(int),colnames(fac))
+#col_all=colnames(train_all)
+#no_type<- subset(train_all,select=col_all[!col_all %in% c(col)])
+chr=chr %>% lapply(as.factor) %>% as.data.frame()
+#fullVisitorId=train_all$fullVisitorId
+train_all=cbind(chr,int)
+#train_data=subset(train_all,select=-fullVisitorId)
+
+#visualization
+ggplot(train_all,aes(x=transactionRevenue)) +geom_histogram(fill="red",bins = 30)
+ggplot(train_all,aes(x=operatingSystem, y=transactionRevenue)) +geom_bar(stat='identity', fill='blue')
+ggplot(train_all,aes(x=browser,y=transactionRevenue)) +geom_bar(stat='identity', fill='purple')
+ggplot(train_all,aes(x=operatingSystem, y=transactionRevenue)) +geom_boxplot()
+ggplot(train_all,aes(x=subContinent,y=transactionRevenue)) +geom_boxplot()
+#最有錢、最沒錢、中間
+for(i in 1:471){
+  if(train_all$transactionRevenue[i]==min(train_all$transactionRevenue)){
+    print(train_all[i,])
+    min=train_all[i,]
+    break
+  }
+}
+for(i in 1:471){
+  if(train_all$transactionRevenue[i]==max(train_all$transactionRevenue)){
+    print(train_all[i,])
+    max=train_all[i,]
+    break
+  }
+}
+
+for(i in 1:471){
+  if(train_all$transactionRevenue[i]==median(train_all$transactionRevenue)){
+    print(train_all[i,])
+    median=train_all[i,]
+    break
+  }
+}
+level=data.frame(level=c("max","median","min"))
+revenue_data=cbind(level,rbind(max,median,min))
+ggplot(revenue_data,aes(x=level,y=transactionRevenue)) +geom_bar(stat='identity', fill='orange')
+ggplot(revenue_data,aes(x=level,y=operatingSystem)) +geom_point(stat='identity', fill='brown',size=10)
+
+model.rf <- randomForest(transactionRevenue~.,data=train_all,ntree=500,proximity=TRUE)
+model.tree=rpart(transactionRevenue~.,data=train_all,method="anova" )
+model.survival.rf=ranger(transactionRevenue~.,data=train_all)
+model.AdaBoost=boosting(transactionRevenue~.,data=train_all, mfinal = 100)
+#xgboost
+target <- train_data$transactionRevenue
+train_Matrix <- xgb.DMatrix(data=as.matrix(train_all),label=target, missing=NA)
+svm_model<-svm(transactionRevenue~., data=train_all, cost = 3)
+
+#Test data
+test_all=data.frame()
+
+test=read.csv("test_v2.csv",sep=",",na.strings = "",nrows = 1)
+col_name=colnames(test)
+
+for (i in 0:5){
+
+  test=read.csv("test_v2.csv",sep=",",na.strings = "",nrows = 1000,skip=(1000*i),col.names = col_name)
+
+  tr_device <-   fromJSON(paste("[", paste(test$device, collapse = ","), "]"),flatten = T)
+  tr_geoNetwork <- fromJSON(paste("[", paste(test$geoNetwork, collapse = ","), "]") ,flatten = T)
+  tr_totals <-  fromJSON(paste("[", paste(test$totals, collapse = ","), "]"),flatten = T)
+  tr_trafficSource <-fromJSON( paste("[", paste(test$trafficSource, collapse = ","), "]"),flatten = T)
+  col=cbind(tr_device, tr_geoNetwork, tr_totals, tr_trafficSource)
+  test=select(test,-device, -geoNetwork, -totals, -trafficSource,-hits,-customDimensions)
+  test=cbind(test,col)
+  test_all=smartbind(test_all,test)#gtools
+  test_all=subset(test_all,is.na(transactionRevenue)==F&is.na(totalTransactionRevenue)==F)
+
+}
+
+test_all=select(test_all,browser,operatingSystem,deviceCategory,subContinent,country,region,city,
+                hits,pageviews,sessionQualityDim,transactionRevenue,totalTransactionRevenue)
+
+
+#把歸類錯誤的變數改正確
+test_all$hits=as.integer(test_all$hits)
+test_all$pageviews=as.integer(test_all$pageviews)
+test_all$sessionQualityDim=as.integer(test_all$sessionQualityDim)
+test_all$transactionRevenue=as.integer(test_all$transactionRevenue)
+test_all$totalTransactionRevenue=as.integer(test_all$totalTransactionRevenue)
+#test_all$fullVisitorId=as.character(test_all$fullVisitorId)
+test_all=centralImputation(test_all)
+test_all$transactionRevenue=as.integer(test_all$transactionRevenue)
+test_all$totalTransactionRevenue=as.integer(test_all$totalTransactionRevenue)
+test_all$sessionQualityDim=as.integer(test_all$sessionQualityDim)
+sapply(test_all,function(x) sum(is.na(x)))
+
+chr <- test_all[,sapply(test_all,is.character)]
+#chr=subset(chr,select=-fullVisitorId)
+int <- test_all[,sapply(test_all,is.integer)]
+#fac <- test_all[,sapply(test_all,is.factor)]
+#col=c(colnames(chr),colnames(int),colnames(fac))
+#col_all=colnames(test_all)
+#no_type<- subset(test_all,select=col_all[!col_all %in% c(col)])
+chr=chr %>% lapply(as.factor) %>% as.data.frame()
+#fullVisitorId=train_all$fullVisitorId
+test_all=cbind(chr,int)
+#test_data=subset(test_all,select=-fullVisitorId)
+test_data=subset(test_all,select=-transactionRevenue)
+
+
+prediction_rf=predict(model.rf ,test_data)
+prediction_tree=predict(model.tree ,test_data)
+prediction_tree
+prediction_survival_rf=predict(model.survival.rf,test_data)
+prediction_survival_rf$predictions
+svm_pred <- predict(svm_model,test_data)
+
+RMSE(ln(prediction_tree),ln( test_all$transactionRevenue))
+RMSE(ln(prediction_survival_rf$predictions),ln( test_all$transactionRevenue))
+
+#write.csv(solution,"prediction_tree.csv",row.names = F)
+#write.csv(solution,"prediction_renger.csv",row.names = F)
