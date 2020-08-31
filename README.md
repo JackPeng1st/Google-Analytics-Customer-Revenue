@@ -1,3 +1,5 @@
+國立交通大學 (NCTU) 彭家祐
+
 Data: 13 Variables (such as device, date,  geoNetwork…... )  train_v2.csv: 23GB   test_v2.csv: 7GB
 
 Goal: Predict revenue per customer. For each Id in the test set, predict the value of the transactionRevenue variable. 
