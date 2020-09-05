@@ -15,7 +15,7 @@ Methods: Decision Tree, Random Forest, etc...
 
 Result: RMSE predicted by Decision Tree= 0.899
         RMSE predicted by Random Forest= 0.533
-    --> Making 
+    --> Making sense
 
 data sicence competition website: https://www.kaggle.com/c/ga-customer-revenue-prediction/overview
 
