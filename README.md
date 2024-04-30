@@ -1,4 +1,3 @@
-國立交通大學 (NCTU) 彭家祐
 
 Data: 13 Variables (such as device, date,  geoNetwork…... ) 
      But after processing the data, there are 59 varaibles.
